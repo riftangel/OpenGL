@@ -1,0 +1,41 @@
+
+OpenGLTuto.png
+size: 2048,512
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+coin
+  rotate: false
+  xy: 1195, 165
+  size: 300, 41
+  orig: 300, 41
+  offset: 0, 0
+  index: -1
+firemario
+  rotate: false
+  xy: 2, 54
+  size: 1191, 75
+  orig: 1191, 75
+  offset: 0, 0
+  index: -1
+goomba
+  rotate: false
+  xy: 2, 208
+  size: 1899, 97
+  orig: 1899, 97
+  offset: 0, 0
+  index: -1
+goombas
+  rotate: false
+  xy: 2, 2
+  size: 862, 50
+  orig: 862, 50
+  offset: 0, 0
+  index: -1
+mario
+  rotate: false
+  xy: 2, 131
+  size: 1191, 75
+  orig: 1191, 75
+  offset: 0, 0
+  index: -1
