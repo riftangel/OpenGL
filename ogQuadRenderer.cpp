@@ -1,15 +1,21 @@
 #include "libs.h"
 
+#include <math.h>
+
 #include "ogQuadRenderer.h"
+#include "ogToolbox.h"
 
 ogQuadRenderer::ogQuadRenderer() {
 
-	this->VAO = 0;
-	this->VBO = 0;
-	this->EBO = 0;
-	this->QuadTexture = NULL;
-	this->QuadShader = NULL;
-	this->cFontClass = NULL;
+	this->m_VAO = 0;
+	this->m_VBO = 0;
+	this->m_EBO = 0;
+	this->m_QuadTexture = NULL;
+	this->m_QuadShader = NULL;
+	this->m_FontClass = NULL;
+	
+	// Transformation Matrix
+	this->m_ScaleFactor = 0.0f;
 
 	// Static Quad Def.
 	float vertices[] = {
@@ -25,16 +31,16 @@ ogQuadRenderer::ogQuadRenderer() {
 	};
 
 	// Initialize/Create VAO & VBO
-	glGenVertexArrays(1, &this->VAO);
-	glGenBuffers(1, &this->VBO);
-	glGenBuffers(1, &this->EBO);
+	glGenVertexArrays(1, &this->m_VAO);
+	glGenBuffers(1, &this->m_VBO);
+	glGenBuffers(1, &this->m_EBO);
 
-	glBindVertexArray(this->VAO);				// Bind our VAO
+	glBindVertexArray(this->m_VAO);				// Bind our VAO
 #if 1
-	glBindBuffer(GL_ARRAY_BUFFER, this->VBO);	// Bind our VBO
+	glBindBuffer(GL_ARRAY_BUFFER, this->m_VBO);	// Bind our VBO
 	glBufferData(GL_ARRAY_BUFFER, 1024 * sizeof(vertices), NULL, GL_DYNAMIC_DRAW);	// NOTE: NULL Buffer ptr as feed done by BufferSubData
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->EBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->m_EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 1024 * sizeof(indices), NULL, GL_DYNAMIC_DRAW); // TODO: Not expected to change use STATIC instead
 #else
 	glBindBuffer(GL_ARRAY_BUFFER, this->VBO);
@@ -57,30 +63,39 @@ ogQuadRenderer::ogQuadRenderer() {
 };
 
 ogQuadRenderer::~ogQuadRenderer() {
-	if (!this->VAO)
-		glDeleteVertexArrays(1, &this->VAO);
-	if (!this->VBO)
-		glDeleteBuffers(1, &this->VBO);
+	if (!this->m_VAO)
+		glDeleteVertexArrays(1, &this->m_VAO);
+	if (!this->m_VBO)
+		glDeleteBuffers(1, &this->m_VBO);
 };
 
 void ogQuadRenderer::mSetTexture(ogTexture* aTexture) {
-	QuadTexture = aTexture;
+	m_QuadTexture = aTexture;
 };
 
 void ogQuadRenderer::mSetShader(ogShader* aShader) {
-	QuadShader = aShader;
+	m_QuadShader = aShader;
 };
 
 void ogQuadRenderer::mSetFontClass(ogFontClass* aFontClass) {
-	this->cFontClass = aFontClass;
+	this->m_FontClass = aFontClass;
+}
+
+void ogQuadRenderer::mSetScaleFactor(GLfloat aScaleFactor) {
+	this->m_ScaleFactor = aScaleFactor;
+}
+
+GLfloat ogQuadRenderer::mGetScaleFactor()
+{
+	return this->m_ScaleFactor;
 }
 
 void ogQuadRenderer::mRender() {
 
 
 	// Simple Zoom factor
-	float ax = (1.0f / gFbWidth) * this->QuadTexture->getWidth() * (float)glm::cos(glfwGetTime()) * 4;
-	float ay = (1.0f / gFbHeight) * this->QuadTexture->getHeight() * (float)glm::cos(glfwGetTime()) * 4;
+	float ax = (1.0f / gFbWidth) * this->m_QuadTexture->getWidth() * (float)glm::cos(glfwGetTime()) * 4;
+	float ay = (1.0f / gFbHeight) * this->m_QuadTexture->getHeight() * (float)glm::cos(glfwGetTime()) * 4;
 
 	//ax = (1.0f / 1920) * this->QuadTexture->getWidth() * 2;
 	//ay = (1.0f / 1080) * this->QuadTexture->getHeight() * 2;
@@ -96,7 +111,7 @@ void ogQuadRenderer::mRender() {
 		dy = 0;
 	}
 
-	ogCharDefinition* lcd = this->cFontClass->mLookupCharCD('A');
+	ogCharDefinition* lcd = this->m_FontClass->mLookupCharCD('A');
 
 	float vertices[] = {
 		// positions                    // colors                     // texture coords
@@ -133,17 +148,17 @@ void ogQuadRenderer::mRender() {
 	};
 
 	// glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, QuadTexture->getID());
+	glBindTexture(GL_TEXTURE_2D, m_QuadTexture->getID());
 
 	// Set our VAO/VBO
-	this->QuadShader->mBind();
-	glBindVertexArray(this->VAO);				// Bind our VAO
+	this->m_QuadShader->mBind();
+	glBindVertexArray(this->m_VAO);				// Bind our VAO
 
-	glBindBuffer(GL_ARRAY_BUFFER, this->VBO);	// Bind our VBO
+	glBindBuffer(GL_ARRAY_BUFFER, this->m_VBO);	// Bind our VBO
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices2), vertices2);	// Be sure to use glBufferSubData and not glBufferData
 	glBindBuffer(GL_ARRAY_BUFFER, 0);			// Unbind our VBO
 
-	glBindBuffer(GL_ARRAY_BUFFER, this->EBO);	// Bind our EBO
+	glBindBuffer(GL_ARRAY_BUFFER, this->m_EBO);	// Bind our EBO
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(indices2), indices2);	// Be sure to use glBufferSubData and not glBufferData
 	glBindBuffer(GL_ARRAY_BUFFER, 0);			// Unbind our EBO
 
@@ -152,7 +167,7 @@ void ogQuadRenderer::mRender() {
 	// Unbind our VAO
 	glBindVertexArray(0);
 	// Unbind Shader Prog.
-	this->QuadShader->mUnBind();
+	this->m_QuadShader->mUnBind();
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 };
@@ -171,11 +186,11 @@ void ogQuadRenderer::mRenderText(int x, int y, const char *simple_text, bool ena
 	int sizeof_indices =0;
 	int prev_char = 0;
 	int kerning = 0;
-	int font_size = this->cFontClass->mGetSize();
+	int font_size = this->m_FontClass->mGetSize();
 
 	// Globals
-	float x_scale = 1.0f / this->cFontClass->mGetScaleW();
-	float y_scale = 1.0f / this->cFontClass->mGetScaleH();
+	float x_scale = 1.0f / this->m_FontClass->mGetScaleW();
+	float y_scale = 1.0f / this->m_FontClass->mGetScaleH();
 	float x_pos = .0f + x;
 	float y_pos = .0f + y;
 	float x_aratio = (1.0f / gFbWidth);  // *this->QuadTexture->getWidth();	// TODO -- replace this with scale/translate/rotate Matrix
@@ -185,7 +200,7 @@ void ogQuadRenderer::mRenderText(int x, int y, const char *simple_text, bool ena
 	
 	for (int i = 0; i < strlen(simple_text); i++) {
 		// Character info (NOT IN WORLD_SPACE coordinates !)
-		ogCharDefinition* lcd = this->cFontClass->mLookupCharCD(simple_text[i]);
+		ogCharDefinition* lcd = this->m_FontClass->mLookupCharCD(simple_text[i]);
 
 		int id_char = lcd->id;
 		float c_width = lcd->width;
@@ -206,7 +221,7 @@ void ogQuadRenderer::mRenderText(int x, int y, const char *simple_text, bool ena
 
 		// Kerning
 		if (prev_char && enable_kerning) {
-			kerning = this->cFontClass->mGetKerning(prev_char, id_char);
+			kerning = this->m_FontClass->mGetKerning(prev_char, id_char);
 			if (kerning) {
 				//std::cout << "kerning: " << (char)prev_char << " " << (char)id_char << " amount " << kerning << std::endl;
 			}
@@ -249,17 +264,30 @@ void ogQuadRenderer::mRenderText(int x, int y, const char *simple_text, bool ena
 	}
 	
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, QuadTexture->getID());
+	glBindTexture(GL_TEXTURE_2D, m_QuadTexture->getID());
 
 	// Set our VAO/VBO
-	this->QuadShader->mBind();
-	glBindVertexArray(this->VAO);				// Bind our VAO
+	this->m_QuadShader->mBind();
 
-	glBindBuffer(GL_ARRAY_BUFFER, this->VBO);	// Bind our VBO
+	// Uniform(s)
+#if 1
+	glm::vec3 translation(-0.0f, 0.f, 0.f);
+	glm::vec3 rotation(0.0f, 0.0f, 0.0f);
+	glm::vec3 scale(this->m_ScaleFactor);
+	glm::mat4 trans = fnCreateTransformationMatrix(translation, rotation, scale);
+#else
+	glm::mat4 trans(1.0f);
+#endif
+	this->m_QuadShader->mSetUniformValue("transformation_mat", trans);
+
+	// VAO & VB0
+	glBindVertexArray(this->m_VAO);				// Bind our VAO
+
+	glBindBuffer(GL_ARRAY_BUFFER, this->m_VBO);	// Bind our VBO
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof_vertices, vertices);	// Be sure to use glBufferSubData and not glBufferData
 	glBindBuffer(GL_ARRAY_BUFFER, 0);			// Unbind our VBO
 
-	glBindBuffer(GL_ARRAY_BUFFER, this->EBO);	// Bind our EBO
+	glBindBuffer(GL_ARRAY_BUFFER, this->m_EBO);	// Bind our EBO
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof_indices, indices);	// Be sure to use glBufferSubData and not glBufferData
 	glBindBuffer(GL_ARRAY_BUFFER, 0);			// Unbind our EBO
 
@@ -268,7 +296,7 @@ void ogQuadRenderer::mRenderText(int x, int y, const char *simple_text, bool ena
 	// Unbind our VAO
 	glBindVertexArray(0);
 	// Unbind Shader Prog.
-	this->QuadShader->mUnBind();
+	this->m_QuadShader->mUnBind();
 	// Unbind Texture
 	glBindTexture(GL_TEXTURE_2D, 0);
 

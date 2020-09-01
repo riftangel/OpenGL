@@ -2,22 +2,67 @@
 
 #include "ogTexture.h"
 
+#include "SOIL2.h"
 
 ogTexture::ogTexture() {
 
-	this->texID = 0;
-	this->width = 0;
-	this->height = 0;
-	this->colorType = 0;
+	this->texID      = 0;
+	this->width      = 0;
+	this->height     = 0;
+	this->colorType  = 0;
 	this->colorDepth = 0;
-	this->alpha = false;
+	this->alpha      = false;
+	this->flip       = false;
 };
 
 ogTexture::~ogTexture() {
 	this->DestroyTexture();
 };
 
-int ogTexture::LoadTextureFromPngFile(const char* aFilename) {
+int ogTexture::LoadTextureFromPngFile2(const char* aFilename) {
+
+	glGenTextures(1, &this->texID);
+	glBindTexture(GL_TEXTURE_2D, this->texID);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	unsigned char* image = SOIL_load_image(
+		aFilename,
+		(int*)&this->width,
+		(int*)&this->height,
+		0,
+		SOIL_LOAD_RGBA);
+
+	if (!image) {
+		std::cout << "png::Could not open the damn file.. please fix this and try again..." << std::endl;
+		return -1;
+	}
+
+	glTexImage2D(
+		GL_TEXTURE_2D,
+		0,
+		GL_RGBA,
+		this->width,
+		this->height,
+		0,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE,
+		image);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	SOIL_free_image_data(image);
+
+	return 0;
+}
+
+
+int ogTexture::LoadTextureFromPngFile(const char* aFilename, bool flip) {
+
+		this->flip = flip;
 
 		png_bytep* rows = NULL, **data = &rows;
 
@@ -98,11 +143,10 @@ int ogTexture::LoadTextureFromPngFile(const char* aFilename) {
 		bool isAlpha = (this->colorType == PNG_COLOR_TYPE_RGB) ? false : true;
 		int lPadding = 3 + (isAlpha ? 1 : 0);
 		size_t lAllocSize = sizeof(GLubyte) * this->width * this->height * lPadding;
-		GLubyte* texture_data = (GLubyte*)malloc(lAllocSize);
+		GLubyte* _Notnull_ texture_data = (GLubyte*)malloc(lAllocSize);
 		memset(texture_data, 0, lAllocSize);
 		int offset = isAlpha ? 4 : 3;
-		bool flip = false;	// TODO: Use a parameter/config instead
-		if (flip) {
+		if (!this->flip) {
 			for (unsigned int i = 0; i < this->height; ++i)
 			{
 				for (unsigned int j = 0; j < this->width; ++j)
@@ -125,7 +169,7 @@ int ogTexture::LoadTextureFromPngFile(const char* aFilename) {
 					texture_data[idx * this->width * offset + j * offset + 0] = rows[i][j * offset + 0];
 					texture_data[idx * this->width * offset + j * offset + 1] = rows[i][j * offset + 1];
 					texture_data[idx * this->width * offset + j * offset + 2] = rows[i][j * offset + 2];
-					if (isAlpha) texture_data[i * this->width * offset + j * offset + 3] = rows[i][j * offset + 3];
+					if (isAlpha) texture_data[idx * this->width * offset + j * offset + 3] = rows[i][j * offset + 3];
 				}
 				free(rows[i]);	// No need for you anymore my little row
 			}
@@ -138,10 +182,11 @@ int ogTexture::LoadTextureFromPngFile(const char* aFilename) {
 		// TODO: Should support differrent WRAP
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, false ? GL_LINEAR : GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, false ? GL_LINEAR : GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, true ? GL_LINEAR : GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, true ? GL_LINEAR : GL_NEAREST);
 		// Send the texture data to da GPU
 		GLint type = isAlpha ? GL_RGBA : GL_RGB;
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 		glTexImage2D(GL_TEXTURE_2D, 0, type, this->width, this->height, 0, type, GL_UNSIGNED_BYTE, texture_data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -161,7 +206,12 @@ GLuint ogTexture::getWidth() {
 
 GLuint ogTexture::getHeight() {
 	return this->height;
-};
+}
+bool ogTexture::mGetFlip()
+{
+	return this->flip;
+}
+;
 
 bool ogTexture::hasAlpha() {
 	return this->alpha;

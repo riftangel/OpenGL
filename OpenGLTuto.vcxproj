@@ -147,18 +147,25 @@
     <ClCompile Include="ogTextFont.cpp" />
     <ClCompile Include="ogQuadRenderer.cpp" />
     <ClCompile Include="ogTexture.cpp" />
+    <ClCompile Include="ogInputManager.cpp" />
+    <ClCompile Include="ogToolbox.cpp" />
+    <ClCompile Include="Test.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ogInputManager.h" />
     <ClInclude Include="ogQuadRenderer.h" />
     <ClInclude Include="ogFontText.h" />
     <ClInclude Include="ogShader.h" />
     <ClInclude Include="ogTexture.h" />
+    <ClInclude Include="ogToolbox.h" />
     <ClInclude Include="shader_source.h" />
     <ClInclude Include="libs.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="basic_texture_frag.glsl" />
-    <None Include="basic_texture_vertex.glsl" />
+    <None Include="Shaders\basic_texture_frag.glsl" />
+    <None Include="Shaders\basic_texture_vertex.glsl" />
+    <None Include="Shaders\text_texture_frag.glsl" />
+    <None Include="Shaders\text_texture_vertex.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

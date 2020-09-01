@@ -16,12 +16,16 @@ public:
 	void mSetShader(ogShader* aShader);
 	void mSetFontClass(ogFontClass* aFontClass);
 
+	void    mSetScaleFactor(GLfloat aScaleFactor);
+	GLfloat mGetScaleFactor();
+
 	void mRender();
 	void mRenderText(int x, int y, const char *simple_text, bool enable_kerning);
 
 private:
-	GLuint VAO, VBO, EBO;
-	ogTexture* QuadTexture;
-	ogShader* QuadShader;
-	ogFontClass* cFontClass;
+	GLuint       m_VAO, m_VBO, m_EBO;
+	ogTexture*   m_QuadTexture;
+	ogShader*    m_QuadShader;
+	ogFontClass* m_FontClass;
+	GLfloat      m_ScaleFactor;
 };

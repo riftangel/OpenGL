@@ -8,11 +8,15 @@ public:
 	ogTexture();
 	~ogTexture();
 
-	int LoadTextureFromPngFile(const char* aFilename);
+	int LoadTextureFromPngFile2(const char* aFilename);
+
+	int LoadTextureFromPngFile(const char* aFilename, bool aFlip=false);
 
 	GLuint getID();
 	GLuint getWidth();
 	GLuint getHeight();
+	
+	bool   mGetFlip();
 
 	bool   hasAlpha();
 	void   DestroyTexture();
@@ -25,6 +29,7 @@ private:
 	GLuint width;
 	GLuint height;
 	bool alpha;
+	bool flip;
 
 	// PNG specific stuff
 	png_byte colorType;

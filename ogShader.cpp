@@ -129,4 +129,50 @@ GLuint ogShader::mLoadShadersFromFile(const char* aVertexShaderFile, const char*
 	std::string shaderFragSrc(std::istreambuf_iterator<char>(fLoaderF), (std::istreambuf_iterator<char>()));
 
 	return mLoadShadersFromText(shaderVertSrc.c_str(), shaderFragSrc.c_str());
-};
+}
+
+GLint ogShader::mGetUniformLocation(const char* aUniformName)
+{
+	if (m_UniformsLocation.count(aUniformName))
+		return m_UniformsLocation[aUniformName];
+
+	GLint uniform_id = glGetUniformLocation(this->shaderId, aUniformName);
+	m_UniformsLocation[aUniformName] = uniform_id;
+
+	return uniform_id;
+}
+
+void ogShader::mSetUniformValue(const char* aUniformName, GLint aValue)
+{
+	glUniform1i(this->mGetUniformLocation(aUniformName), aValue);
+}
+
+void ogShader::mSetUniformValue(const char* aUniformName, float aValue)
+{
+	glUniform1f(this->mGetUniformLocation(aUniformName), aValue);
+}
+
+void ogShader::mSetUniformValue(const char* aUniformName, glm::fvec2 aVector2) {
+
+	glUniform2fv(this->mGetUniformLocation(aUniformName), 1, glm::value_ptr(aVector2));
+}
+
+void ogShader::mSetUniformValue(const char* aUniformName, glm::fvec3 aVector3) 
+{
+	glUniform3fv(this->mGetUniformLocation(aUniformName), 1, glm::value_ptr(aVector3));
+}
+
+void ogShader::mSetUniformValue(const char* aUniformName, glm::fvec4 aVector4)
+{
+	glUniform4fv(this->mGetUniformLocation(aUniformName), 1, glm::value_ptr(aVector4));
+}
+
+void ogShader::mSetUniformValue(const char* aUniformName, glm::mat3 aMat3, GLboolean aTranspose)
+{
+	glUniformMatrix3fv(this->mGetUniformLocation(aUniformName), 1, aTranspose, glm::value_ptr(aMat3));
+}
+
+void ogShader::mSetUniformValue(const char* aUniformName, glm::mat4 aMat4, GLboolean aTranspose)
+{
+	glUniformMatrix4fv(this->mGetUniformLocation(aUniformName), 1, aTranspose, glm::value_ptr(aMat4));
+}

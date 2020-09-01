@@ -30,6 +30,15 @@
     <ClCompile Include="ogShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ogInputManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ogToolbox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="libs.h">
@@ -50,12 +59,24 @@
     <ClInclude Include="ogShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ogInputManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ogToolbox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="basic_texture_vertex.glsl">
+    <None Include="Shaders\text_texture_frag.glsl">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="basic_texture_frag.glsl">
+    <None Include="Shaders\text_texture_vertex.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shaders\basic_texture_frag.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shaders\basic_texture_vertex.glsl">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
