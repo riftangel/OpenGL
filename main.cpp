@@ -10,6 +10,8 @@
 #include "ogQuadRenderer.h"
 #include "ogInputManager.h"
 #include "ogToolbox.h"
+#include "ogCore.h"
+#include "ogImgui.h"
 
 #define WINXBUILD
 #ifdef WINXBUILD
@@ -19,7 +21,6 @@
 #include <unistd.h>
 #define GetCurrentDir getcwd
 #endif
-
 
 //
 // build and compile our shader program
@@ -121,7 +122,8 @@ void setup2DGrid(GLFWwindow *aWindow) {
 //
 // QUAD_CLASS
 //
-class BasicQuad {
+
+class BasicQuad : public ogImguiRenderer {
 
 public:
 	BasicQuad() {
@@ -131,7 +133,9 @@ public:
 		this->EBO = 0;
 		this->QuadTexture = NULL;
 		this->QuadShader = NULL;
-		
+		this->m_color = glm::vec4(0.0f);
+		this->m_factor = 0.10f;
+
 		// Static Quad Def.
 		float vertices[] = {
 			// positions          // colors           // texture coords
@@ -185,14 +189,32 @@ public:
 		QuadShader = aShader;
 	};
 
+	void renderer() {
+
+		static int counter = 0;
+
+		ImGui::Begin("Basic Quad Renderer");                    
+		ImGui::Text("This is some useful text.");   
+
+
+		ImGui::SliderFloat("Zoom Factor", &this->m_factor, 0.0f, 1.0f);
+		ImGui::ColorEdit3("clear color", (float*)&m_color); 
+
+		if (ImGui::Button("Button"))
+			counter++;
+		ImGui::SameLine();
+		ImGui::Text("counter = %d", counter);
+		ImGui::End();
+	};
+
 	void Render() {
 
 		// Simple Zoom factor
 		float ax = (1.0f / gFbWidth) * this->QuadTexture->getWidth() * glm::cos(glfwGetTime()) * 4;
 		float ay = (1.0f / gFbHeight) * this->QuadTexture->getHeight() * glm::cos(glfwGetTime()) * 4;
 
-		ax = (1.0f / 1920) * this->QuadTexture->getWidth() * 1;
-		ay = (1.0f / 1080) * this->QuadTexture->getHeight() * 1;
+		ax = (1.0f / 1920) * this->QuadTexture->getWidth() * this->m_factor * 10;
+		ay = (1.0f / 1080) * this->QuadTexture->getHeight() * this->m_factor * 10;
 
 		// 2D basic translation
 		float dx, dy;
@@ -264,16 +286,246 @@ public:
 private:
 	GLuint VAO, VBO, EBO;
 	ogTexture *QuadTexture;
-	ogShader  *QuadShader;;
+	ogShader  *QuadShader;
+	glm::vec4 m_color;
+	float m_factor;
 };
 
 std::string get_current_dir() {
 	char buff[FILENAME_MAX]; //create string buffer to hold path
-	GetCurrentDir(buff, FILENAME_MAX);
+	char *ptr = GetCurrentDir(buff, FILENAME_MAX);
 	std::string current_working_dir(buff);
 	return current_working_dir;
 }
 
+class ogRenderToTexture : public ogImguiRenderer {
+
+public:
+	ogRenderToTexture() {
+
+		this->VAO = 0;
+		this->VBO = 0;
+		this->EBO = 0;
+		this->QuadTexture = NULL;
+		this->QuadShader = NULL;
+		this->m_color = glm::vec4(0.0f);
+		this->m_factor = 0.0;
+
+		// Static Quad Def.
+		float vertices[] = {
+			// positions          // colors           // texture coords
+			 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+			 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+			-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+			-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
+		};
+		unsigned int indices[] = {
+			0, 1, 3, // first triangle
+			1, 2, 3  // second triangle
+		};
+
+		// Initialize/Create VAO & VBO
+		glGenVertexArrays(1, &this->VAO);
+		glGenBuffers(1, &this->VBO);
+		glGenBuffers(1, &this->EBO);
+
+		glBindVertexArray(this->VAO);				// Bind our VAO
+		glBindBuffer(GL_ARRAY_BUFFER, this->VBO);	// Bind our VBO
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), NULL, GL_DYNAMIC_DRAW);	// NOTE: NULL Buffer ptr as feed done by BufferSubData
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->EBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), NULL, GL_DYNAMIC_DRAW); // TODO: Not expected to change use STATIC instead
+		// Positions
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (const void*)(void*)0);
+		glEnableVertexAttribArray(0);
+		// Colors
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (const void*)(void*)(3 * sizeof(float)));
+		glEnableVertexAttribArray(1);
+		// Texture Coordinates
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (const void*)(void*)(6 * sizeof(float)));
+		glEnableVertexAttribArray(2);
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);	// Unbind our VBO
+		glBindVertexArray(0);				// Unbind our VAO
+	};
+
+	~ogRenderToTexture() {
+
+		if (!this->VAO)
+			glDeleteVertexArrays(1, &this->VAO);
+		if (!this->VBO)
+			glDeleteBuffers(1, &this->VBO);
+	};
+
+	bool mSetupTexture() {
+
+		// The framebuffer, which regroups 0, 1, or more textures, and 0 or 1 depth buffer.
+		GLuint FramebufferName = 0;
+		glGenFramebuffers(1, &FramebufferName);
+		glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+
+		// The texture we're going to render to		
+		glGenTextures(1, &this->renderedTexture);
+
+		// "Bind" the newly created texture : all future texture functions will modify this texture
+		glBindTexture(GL_TEXTURE_2D, this->renderedTexture);
+
+		// Give an empty image to OpenGL ( the last "0" )
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 768, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+
+		// Poor filtering. Needed !
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+		// The depth buffer
+		GLuint depthrenderbuffer;
+		glGenRenderbuffers(1, &depthrenderbuffer);
+		glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1024, 768);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
+
+		// Set "renderedTexture" as our colour attachement #0
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, this->renderedTexture, 0);
+
+		// Set the list of draw buffers.
+		GLenum DrawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+		glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
+
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+			return false;
+		}
+
+		// Render to our framebuffer
+		glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+		glViewport(0, 0, 1024, 768); // Render on the whole framebuffer, complete from the lower left corner to the upper right
+
+		/*
+
+		The fragment shader just needs a minor adaptation :
+
+			layout(location = 0) out vec3 color;
+
+		This means that when writing in the variable “color”, we will actually write in the Render Target 0, which happens to be our texture because DrawBuffers[0] is GL_COLOR_ATTACHMENTi, which is, in our case, renderedTexture.
+
+		To recap :
+
+		color will be written to the first buffer because of layout(location=0).
+		The first buffer is GL_COLOR_ATTACHMENT0 because of DrawBuffers[1] = {GL_COLOR_ATTACHMENT0}
+		GL_COLOR_ATTACHMENT0 has renderedTexture attached, so this is where your color is written.
+		In other words, you can replace GL_COLOR_ATTACHMENT0 by GL_COLOR_ATTACHMENT2 and it will still work.
+
+		Note : there is no layout(location=i) in OpenGL < 3.3, but you use glFragData[i] = mvvalue anyway.
+		*/
+		return true;
+	};
+
+	void renderer() {
+
+		static int counter = 0;
+
+		ImGui::Begin("Basic Renderer 2 Texture");
+		ImGui::Text("This is some useful text.");
+
+
+		ImGui::SliderFloat("Zoom Factor", &this->m_factor, 0.0f, 1.0f);
+		ImGui::ColorEdit3("clear color", (float*)&m_color);
+
+		if (ImGui::Button("Button"))
+			counter++;
+		ImGui::SameLine();
+		ImGui::Text("counter = %d", counter);
+		ImGui::End();
+	};
+
+	void mRender() {	
+				
+		float px = 1.0f - this->m_factor;
+		float py = 1.0f - this->m_factor;
+
+		// Static Quad Def.
+		float vertices[] = {
+			// positions          // colors           // texture coords
+			 px,  py, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+			 px, -py, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+			-px, -py, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+			-px,  py, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
+		};
+		unsigned int indices[] = {
+			0, 1, 3, // first triangle
+			1, 2, 3  // second triangle
+		};
+
+		//glActiveTexture(GL_TEXTURE0);	// TODO: Check if this is still required with latest OpenGL 4.x
+		glBindTexture(GL_TEXTURE_2D, QuadTexture->getID());
+
+		// Set our VAO/VBO
+		this->QuadShader->mBind();
+
+		glBindVertexArray(this->VAO);				// Bind our VAO
+
+		glBindBuffer(GL_ARRAY_BUFFER, this->VBO);	// Bind our VBO
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); // Be sure to use glBufferSubData and not glBufferData
+		glBindBuffer(GL_ARRAY_BUFFER, 0);			// Unbind our VBO
+
+		glBindBuffer(GL_ARRAY_BUFFER, this->EBO);	// Bind our EBO
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(indices), indices);	 // Be sure to use glBufferSubData and not glBufferData
+		glBindBuffer(GL_ARRAY_BUFFER, 0);			// Unbind our EBO
+
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);	// Quads number to render * 6
+
+		// Unbind our VAO
+		glBindVertexArray(0);
+		// Unbind Shader Prog.
+		this->QuadShader->mUnBind();
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		// Release Framebuffer !
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		// Restore view port
+		glViewport(0, 0, gFbWidth, gFbHeight);
+
+		// Draw on screen now...
+		glBindTexture(GL_TEXTURE_2D, this->renderedTexture);
+
+		// Set our VAO/VBO
+		this->QuadShader->mBind();
+
+		// DRAW QUAD !
+		glBindVertexArray(this->VAO);				// Bind our VAO
+		glBindBuffer(GL_ARRAY_BUFFER, this->VBO);	// Bind our VBO
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); // Be sure to use glBufferSubData and not glBufferData
+		glBindBuffer(GL_ARRAY_BUFFER, 0);			// Unbind our VBO
+		glBindBuffer(GL_ARRAY_BUFFER, this->EBO);	// Bind our EBO
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(indices), indices);	 // Be sure to use glBufferSubData and not glBufferData
+		glBindBuffer(GL_ARRAY_BUFFER, 0);			// Unbind our EBO
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);	// Quads number to render * 6
+
+		// Unbind our VAO
+		glBindVertexArray(0);
+		// Unbind Shader Prog.
+		this->QuadShader->mUnBind();
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+	};
+
+	void SetTexture(ogTexture* aTexture) {
+		QuadTexture = aTexture;
+	};
+
+	void SetShader(ogShader* aShader) {
+		QuadShader = aShader;
+	};
+
+private:
+	GLuint renderedTexture;
+	GLuint VAO, VBO, EBO;
+	ogTexture* QuadTexture;
+	ogShader* QuadShader;
+	glm::vec4 m_color;
+	float m_factor;
+};
 
 void build_font_atlas_offsets() {
 
@@ -295,98 +547,6 @@ void build_font_atlas_offsets() {
 	}
 }
 
-class ogCore {
-
-public:
-	ogCore() {
-		this->m_Width  = -1;
-		this->m_Height = -1;
-		this->m_Options = 0;
-		this->m_FrameBufferCallback_External = NULL;
-		this->m_Window = NULL;
-	};
-	
-	~ogCore() {
-
-	};
-
-	void mInit(int aWidth, int aHeight, int aOptions) {
-
-		// Init GLFW
-		glfwInit();
-
-		// Initialize Core internals
-		this->m_Width   = aWidth;
-		this->m_Height  = aHeight;
-		this->m_Options = aOptions;
-
-		// Temporary workaround.. TODO: Switch to getWidth/Height
-		gFbWidth = this->m_Width;
-		gFbHeight = this->m_Height;
-
-		//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-		glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
-		//  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // For MAC_OS
-
-		this->m_Window = glfwCreateWindow(this->m_Width, this->m_Height, "ogCoreOpenGL", NULL, NULL);
-
-		glfwSetFramebufferSizeCallback(this->m_Window, framebuffer_resize_callback);
-
-		glViewport(0, 0, this->m_Width, this->m_Height);
-
-		glfwMakeContextCurrent(this->m_Window); // Important for GLEW to initialize
-
-		// Init GLEW (needs windows and opengl context)
-		glewExperimental = GL_TRUE;
-
-		if (glewInit() != GLEW_OK) {
-			std::cout << "CRITICAL_ERROR: ogCore::mInit() : GLEW_INIT_FAILED" << "\n";
-			glfwTerminate();
-			exit(-1);
-		}
-	};
-
-	void mFrameBufferCallback(GLFWwindow* window, int fbW, int fbH) {
-		
-		glViewport(0, 0, fbW, fbH);
-		this->m_Width  = fbW;
-		this->m_Height = fbH;
-		
-		if (m_FrameBufferCallback_External) {
-			this->mFrameBufferCallback(window, fbW, fbH);
-		}
-	}
-
-	int  mGetWindowWidth() {
-		return this->m_Width;
-	};
-
-	int  mGetWindowHeight() {
-		return this->m_Height;
-	}
-
-	GLFWwindow* mGetWindow() {
-		return this->m_Window;
-	}
-
-	void mShutdownDown() {
-
-		glfwDestroyWindow(this->m_Window);
-		glfwTerminate();
-	};
-
-private:
-	int         m_Width;
-	int         m_Height;
-	int			m_Options;
-	GLFWwindow *m_Window;
-	void		(*m_FrameBufferCallback_External)(GLFWwindow*, int, int);
-};
-
-
 ogCore* gCore = NULL;
 
 extern int main_test();
@@ -401,7 +561,10 @@ int main(int argc, char** argv) {
 	// main_test();
 	gCore = new ogCore();
 	gCore->mInit(1920,1080,0);
+	gCore->mSetFrameBufferCallback(framebuffer_resize_callback);
 
+	ogImgui *gImgui = new ogImgui(gCore->mGetWindow());
+	
 	double zZoom = 1;
 	float orbitDegrees = 0;
 
@@ -411,8 +574,11 @@ int main(int argc, char** argv) {
 	ogQuadRenderer*myQuad = new ogQuadRenderer();
 	ogTexture *myTexture = new ogTexture();
 	ogTexture* myTexture2 = new ogTexture();
+	ogTexture* myTexture3 = new ogTexture();
+
 	ogShader* myShader = new ogShader();
 	ogShader* myShaderText = new ogShader();
+	ogShader* myShaderT2B = new ogShader();
 
 	//myTexture->LoadTextureFromPngFile("16x16_font.png");
 	//myTexture->LoadTextureFromPngFile("container.png");
@@ -420,8 +586,10 @@ int main(int argc, char** argv) {
 	ogFontClass* myFontClass2 = new ogFontClass("Candara2");
 	myTexture->LoadTextureFromPngFile("Fonts/Bahnschrift2.png", true);
 	myTexture2->LoadTextureFromPngFile("Fonts/Candara2.png", true);
+	myTexture3->LoadTextureFromPngFile("Assets/basic1024_768.png", true);
 	myShader->mLoadShadersFromFile("Shaders/basic_texture_vertex.glsl", "Shaders/basic_texture_frag.glsl");
 	myShaderText->mLoadShadersFromFile("Shaders/text_texture_vertex.glsl", "Shaders/text_texture_frag.glsl");
+	myShaderT2B->mLoadShadersFromFile("Shaders/render2texture_vertex.glsl", "Shaders/render2texture_frag.glsl");
 
 	myQuad->mSetTexture(myTexture);
 	myQuad->mSetShader(myShaderText);
@@ -444,6 +612,10 @@ int main(int argc, char** argv) {
 	myBasicQuad->SetShader(myShader);
 	myBasicQuad->SetTexture(myTexture);
 
+	ogRenderToTexture *myRender2Tex = new ogRenderToTexture();
+	myRender2Tex->SetShader(myShaderT2B);
+	myRender2Tex->SetTexture(myTexture3);
+	myRender2Tex->mSetupTexture();
 	//
 	// MAIN_LOOP
 	//
@@ -492,6 +664,12 @@ int main(int argc, char** argv) {
 #endif
 		myBasicQuad->Render();
 
+		myRender2Tex->mRender();		
+
+		gImgui->mPushCallback(myBasicQuad);
+		gImgui->mPushCallback(myRender2Tex);
+		gImgui->mRender();
+
 		// End Draw
 		glfwSwapBuffers(gCore->mGetWindow());
 		glFlush();
@@ -502,6 +680,9 @@ bail_me_out_now:;
 	delete myTexture;
 	delete myQuad;
 	delete myShader;
+
+	// End Imgui 
+	delete gImgui;
 
 	// End/Exit Program
 	gCore->mShutdownDown();

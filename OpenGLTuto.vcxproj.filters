@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="imgui">
+      <UniqueIdentifier>{1375f952-e7ec-465c-99e6-ab6620f484cd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -38,6 +41,30 @@
     </ClCompile>
     <ClCompile Include="Test.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ogCore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="externs\imgui\imgui.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="externs\imgui\imgui_demo.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="externs\imgui\imgui_draw.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="externs\imgui\imgui_widgets.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ogImgui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="externs\imgui\examples\imgui_impl_opengl3.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="externs\imgui\examples\imgui_impl_glfw.cpp">
+      <Filter>imgui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -65,6 +92,12 @@
     <ClInclude Include="ogToolbox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ogCore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ogImgui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\text_texture_frag.glsl">
@@ -77,6 +110,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="Shaders\basic_texture_vertex.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shaders\render2texture_frag.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shaders\render2texture_vertex.glsl">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

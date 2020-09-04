@@ -1,6 +1,16 @@
 #include "ogInputManager.h"
 
 ogInputManager::ogInputManager() {
+	this->m_xpos = -1;
+	this->m_ypos = -1;
+
+	this->m_xscroll = -1;
+	this->m_yscroll = -1;
+
+	this->m_scroll_min    = 0;
+	this->m_scroll_max    = 1.0;
+	this->m_scroll_inc    = 0.05;
+	this->m_scroll_factor = 0;
 }
 
 ogInputManager::~ogInputManager() {
@@ -13,16 +23,6 @@ void ogInputManager::mRegisterWindowCallback(GLFWwindow* aWindow) {
 	glfwSetKeyCallback(aWindow, (GLFWkeyfun)mKeyCallbackStatic);
 	glfwSetCursorPosCallback(aWindow, (GLFWcursorposfun)mMouseCallbackStatic);
 	glfwSetScrollCallback(aWindow, (GLFWscrollfun)mScrollCallbackStatic);
-
-	this->m_xpos = -1;
-	this->m_ypos = -1;
-
-	this->m_xscroll = -1;
-	this->m_yscroll = -1;
-
-	this->m_scroll_min = 0;
-	this->m_scroll_max = 1.0;
-	this->m_scroll_inc = 0.05;
 }
 
 void ogInputManager::mDeRegisterWindowCallback(GLFWwindow* aWindow)
